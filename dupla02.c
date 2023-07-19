@@ -32,10 +32,10 @@ pthread_t *createThread(void *(*function)(void *))
 }
 
 // Chamadas para indicar ações de elfos, renas e papai noel
-void prepareSleigh() { printf("Preparando o trenó!"); }
-void helpElves() { printf("Ajudando elfos!"); }
-void getHitched() { printf("Saindo com as renas!"); }
-void getHelp() { printf("Pedindo ajuda ao Papai Noel!"); }
+void prepareSleigh() { printf("Preparando o trenó!\n"); }
+void helpElves() { printf("Ajudando elfos!\n"); }
+void getHitched() { printf("Saindo com as renas!\n"); }
+void getHelp() { printf("Pedindo ajuda ao Papai Noel!\n"); }
 
 void *reindeerFunc()
 {
@@ -70,13 +70,21 @@ void *elveFunc()
 
     elvesWaiting++; // Acrescenta um elfo na lista de elfos esperando
 
-    printf("%d elfos precisam da ajuda do Papai Noel\n", elvesWaiting);
+    if (elvesWaiting <= 3)
+        printf("%d elfos precisam da ajuda do Papai Noel\n", elvesWaiting);
 
     if (elvesWaiting == 3)
     {
         getHelp();
 
         pthread_cond_signal(&santaCond); // Chamando o Papai Noel
+    }
+    else if (elvesWaiting > 3)
+    {
+        printf("Já tem três elfos precisando de ajuda. Aguarde algum deles ser ajudado.\n");
+        pthread_mutex_unlock(&elveMutex);
+        pthread_mutex_unlock(&mutex);
+        pthread_exit(NULL);
     }
 
     else
@@ -87,13 +95,15 @@ void *elveFunc()
     pthread_cond_wait(&elveCond, &mutex); // Esperando o Papai Noel sinalizar //-----------------------
 
     // Caso o papai noel não tenha sinalizado para os elfos ainda mas todas as renas tenham chegado, priorizamos a saída das renas
-    if (reindeerWaiting == 9)
+    if (reindeerWaiting == N_REINDEER)
     {
         pthread_mutex_unlock(&mutex);
         pthread_mutex_unlock(&elveMutex);
         pthread_cond_signal(&elveCond);
         pthread_exit(NULL);
     }
+
+    printf("Um elfo já conseguiu ajuda\n");
 
     pthread_cond_signal(&elveCond); // Sinalizando que outro elfo pode receber ajuda, caso necessite
 
@@ -207,5 +217,6 @@ int main()
     pthread_cond_destroy(&elveCond);
     pthread_cond_destroy(&santaCond);
 
+    printf("Papai Noel terminou seu trabalho!\n");
     return 0;
 }
