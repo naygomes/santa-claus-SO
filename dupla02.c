@@ -13,6 +13,7 @@
 int N_ELVES = 0;
 int N_REINDEER = 9;
 
+// N˚ de elfos e renas esperando
 int elvesWaiting;
 int reindeerWaiting;
 
@@ -24,13 +25,6 @@ pthread_cond_t reindeerCond = PTHREAD_COND_INITIALIZER;
 pthread_cond_t elveCond = PTHREAD_COND_INITIALIZER;
 pthread_cond_t santaCond = PTHREAD_COND_INITIALIZER;
 
-pthread_t *createThread(void *(*function)(void *))
-{
-    pthread_t *thread = malloc(sizeof(pthread_t));
-    pthread_create(thread, NULL, function, NULL);
-    return thread;
-}
-
 // Chamadas para indicar ações de elfos, renas e papai noel
 void prepareSleigh() { printf("Preparando o trenó!\n"); }
 void helpElves() { printf("Ajudando elfos!\n"); }
@@ -40,24 +34,21 @@ void getHelp() { printf("Pedindo ajuda ao Papai Noel!\n"); }
 void *reindeerFunc()
 {
     pthread_mutex_lock(&mutex); // Bloqueando o mutex
-    // pthread_mutex_lock(&reindeerMutex); // Bloqueando o mutex das renas //-------------------
+    // pthread_mutex_lock(&reindeerMutex); // Bloqueando o mutex das renas
 
     reindeerWaiting++; // Acrescenta uma rena na lista de renas esperando
-
     printf("%d renas chegaram e estão esperando o Papai Noel\n", reindeerWaiting);
 
     if (reindeerWaiting == N_REINDEER) // Verifica se a quantidade de renas que estão esperando é igual ao n˚ mínimo de renas pro Papai Noel acordar
     {
         pthread_cond_signal(&santaCond); // Envia sinal pro Papai Noel ser acordado
     }
-    pthread_mutex_unlock(&mutex);       //-------------------
-    pthread_mutex_lock(&reindeerMutex); // Bloqueia o mutex das renas //-------------------
+    pthread_mutex_unlock(&mutex);
+    pthread_mutex_lock(&reindeerMutex); // Bloqueia o mutex das renas
 
     pthread_cond_wait(&reindeerCond, &reindeerMutex); // Esperando o Papai Noel sinalizar
-
-    pthread_mutex_unlock(&reindeerMutex); // Desbloqueando o mutex
-
-    pthread_cond_signal(&reindeerCond); // Desbloqueando o mutex das renas
+    pthread_mutex_unlock(&reindeerMutex);             // Desbloqueando o mutex
+    pthread_cond_signal(&reindeerCond);               // Desbloqueando o mutex das renas
 
     pthread_exit(NULL); // Finaliza a thread
 }
@@ -76,7 +67,6 @@ void *elveFunc()
     if (elvesWaiting == 3)
     {
         getHelp();
-
         pthread_cond_signal(&santaCond); // Chamando o Papai Noel
     }
     else if (elvesWaiting > 3)
@@ -86,13 +76,11 @@ void *elveFunc()
         pthread_mutex_unlock(&mutex);
         pthread_exit(NULL);
     }
-
     else
     {
         pthread_mutex_unlock(&elveMutex); // Desbloqueando mutex caso outros elfos precisem de ajuda
     }
-
-    pthread_cond_wait(&elveCond, &mutex); // Esperando o Papai Noel sinalizar //-----------------------
+    pthread_cond_wait(&elveCond, &mutex); // Esperando o Papai Noel sinalizar
 
     // Caso o papai noel não tenha sinalizado para os elfos ainda mas todas as renas tenham chegado, priorizamos a saída das renas
     if (reindeerWaiting == N_REINDEER)
@@ -102,11 +90,9 @@ void *elveFunc()
         pthread_cond_signal(&elveCond);
         pthread_exit(NULL);
     }
-
     printf("Um elfo já conseguiu ajuda\n");
 
     pthread_cond_signal(&elveCond); // Sinalizando que outro elfo pode receber ajuda, caso necessite
-
     elvesWaiting--;
 
     if (elvesWaiting == 0)
@@ -120,7 +106,6 @@ void *elveFunc()
 
 void *santaClausFunc()
 {
-
     while (1)
     {
         pthread_mutex_lock(&santaMutex);            // Bloqueando o mutex do Papai Noel
@@ -132,12 +117,10 @@ void *santaClausFunc()
         {
             prepareSleigh();
             pthread_cond_signal(&reindeerCond); // Preparando cada rena para depois serem liberadas
-            pthread_mutex_unlock(&mutex);       // -----------
-            pthread_cond_signal(&elveCond);     // -------------
-
+            pthread_cond_signal(&elveCond);
+            pthread_mutex_unlock(&mutex);
             getHitched();
-
-            pthread_exit(NULL); // ----------------
+            pthread_exit(NULL);
         }
         else if (elvesWaiting == 3)
         {
@@ -145,15 +128,13 @@ void *santaClausFunc()
             pthread_cond_signal(&elveCond); // Enviando sinal para elfos que serão ajudados
         }
 
-        pthread_mutex_unlock(&mutex); // Desbloqueando o mutex
-
+        pthread_mutex_unlock(&mutex);      // Desbloqueando o mutex
         pthread_mutex_unlock(&santaMutex); // Desbloqueando o mutex do Papai Noel
     }
 }
 
 int main()
 {
-
     printf("Quantos elfos irão trabalhar para o Papai Noel? ");
     scanf("%d", &N_ELVES);
 
